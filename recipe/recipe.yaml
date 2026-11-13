@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  name: backward-cpp
+  version: "1.6"
+  sha256: c654d0923d43f1cea23d086729673498e4741fb2457e806cfaeaea7b20c97c10
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bombela/${{ name }}/archive/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+  file_name: v${{ version }}.tar.gz
+  patches:
+    - fix_tests.patch
+
+build:
+  number: 8
+
+requirements:
+  build:
+    - cmake
+    - if: not win
+      then: make
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('cxx') }}
+  host:
+    # so that the tests compiled in the build step can link to libdw
+    - if: linux
+      then: elfutils
+
+tests:
+  - files:
+      recipe:
+        - CMakeLists.txt
+        - test_main.cpp
+    requirements:
+      run:
+        - cmake
+        - if: not win
+          then: make
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - if: linux
+          then: elfutils
+    script:
+      - if: unix
+        then:
+          - test -f ${PREFIX}/include/backward.hpp
+          - test -f ${PREFIX}/lib/backward/BackwardConfig.cmake
+          - mkdir build
+          - cd build
+          - cmake .. -DCMAKE_BUILD_TYPE=Debug
+          - make
+          - ./main || true
+
+about:
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Backward is a beautiful stack trace pretty printer for C++.
+  homepage: https://github.com/bombela/backward-cpp
+  repository: https://github.com/bombela/backward-cpp
+  documentation: https://github.com/bombela/backward-cpp/blob/master/README.md
+
+extra:
+  recipe-maintainers:
+    - edisongustavo
+    - bombela
+    - traversaro
